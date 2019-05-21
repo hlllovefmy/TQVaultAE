@@ -147,10 +147,22 @@ namespace TQVaultData
             }
         }
 
-        /// <summary>
-        /// Gets or sets the Immortal Throne game path.
-        /// </summary>
-        public static string ImmortalThronePath
+		/// <summary>
+		/// Gets a value indicating whether Atlantis DLC has been installed.
+		/// </summary>
+		public static bool IsAtlantisInstalled
+		{
+			get
+			{
+				return Directory.Exists(ImmortalThronePath + "\\Resources\\XPack3");
+			}
+		}
+
+
+		/// <summary>
+		/// Gets or sets the Immortal Throne game path.
+		/// </summary>
+		public static string ImmortalThronePath
 		{
 			get
 			{
@@ -324,7 +336,7 @@ namespace TQVaultData
 		}
 
 		/// <summary>
-		/// Gets the filename for the character's transfer stash.
+		/// Gets the filename for the game's transfer stash.
 		/// Stash files for Mods all have their own subdirectory which is the same as the mod's custom map folder
 		/// </summary>
 		public static string TransferStashFile
@@ -337,6 +349,23 @@ namespace TQVaultData
 				}
 
 				return Path.Combine(Path.Combine(Path.Combine(ImmortalThroneSaveFolder, "SaveData"), "Sys"), "winsys.dxb");
+			}
+		}
+
+		/// <summary>
+		/// Gets the filename for the game's relic vault stash.
+		/// Stash files for Mods all have their own subdirectory which is the same as the mod's custom map folder
+		/// </summary>
+		public static string RelicVaultStashFile
+		{
+			get
+			{
+				if (IsCustom)
+				{
+					return Path.Combine(Path.Combine(Path.Combine(Path.Combine(ImmortalThroneSaveFolder, "SaveData"), "Sys"), MapName), "miscsys.dxb");
+				}
+
+				return Path.Combine(Path.Combine(Path.Combine(ImmortalThroneSaveFolder, "SaveData"), "Sys"), "miscsys.dxb");
 			}
 		}
 
@@ -370,6 +399,21 @@ namespace TQVaultData
 					label,
 					reader.BaseStream.Position - label.Length - 4));
 			}
+		}
+
+		public static bool MatchNextString(string value, BinaryReader reader)
+		{
+			long readerPosition = reader.BaseStream.Position;
+
+			string label = ReadCString(reader);
+			reader.BaseStream.Position = readerPosition;
+
+			if (!label.ToUpperInvariant().Equals(value.ToUpperInvariant()))
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		/// <summary>

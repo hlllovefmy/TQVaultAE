@@ -156,14 +156,45 @@ namespace TQVaultAE.GUI
 			this.ShowInTaskbar = false;
 			this.Opacity = 0;
 			this.Hide();
+
 			SetUILanguage();
 
-			Database.DB = new Database();
-			Database.DB.AutoDetectLanguage = Settings.Default.AutoDetectLanguage;
-			Database.DB.TQLanguage = Settings.Default.TQLanguage;
+			Program.LoadDB();
+
+			this.InitializeComponent();
 
 			this.SetupFormSize();
-			this.InitializeComponent();
+
+			#region Apply custom font & scaling
+
+			this.exitButton.Font = Program.GetFontAlbertusMTLight(12F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.exitButton);
+			this.characterComboBox.Font = Program.GetFontAlbertusMTLight(13F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.characterComboBox);
+			ScaleControl(this.characterLabel);
+			ScaleControl(this.itemTextPanel);
+			ScaleControl(this.itemText);
+			this.vaultListComboBox.Font = Program.GetFontAlbertusMTLight(13F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.vaultListComboBox);
+			this.vaultLabel.Font = Program.GetFontAlbertusMTLight(11F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.vaultLabel);
+			this.configureButton.Font = Program.GetFontAlbertusMTLight(12F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.configureButton);
+			this.customMapText.Font = Program.GetFontAlbertusMT(11.25F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.customMapText);
+			this.panelSelectButton.Font = Program.GetFontAlbertusMTLight(12F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.panelSelectButton);
+			this.secondaryVaultListComboBox.Font = Program.GetFontAlbertusMTLight(11F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.secondaryVaultListComboBox);
+			this.aboutButton.Font = Program.GetFontMicrosoftSansSerif(8.25F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.aboutButton);
+			this.titleLabel.Font = Program.GetFontAlbertusMTLight(24F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.titleLabel);
+			this.searchButton.Font = Program.GetFontAlbertusMTLight(12F, TQVaultData.Database.DB.Scale);
+			ScaleControl(this.searchButton);
+
+			#endregion
+
 			try
 			{
 				this.tooltip = new TTLib();
@@ -222,8 +253,9 @@ namespace TQVaultAE.GUI
 			Item.ItemQuest = Resources.ItemQuest;
 			Item.ItemSeed = Resources.ItemSeed;
 			Item.ItemIT = Resources.ItemIT;
-            Item.ItemRagnarok = Resources.ItemRagnarok;
-            Item.ShowSkillLevel = Settings.Default.ShowSkillLevel;
+			Item.ItemRagnarok = Resources.ItemRagnarok;
+			Item.ItemAtlantis = Resources.ItemAtlantis;
+			Item.ShowSkillLevel = Settings.Default.ShowSkillLevel;
 
 			if (Settings.Default.NoToolTipDelay)
 			{
@@ -385,7 +417,7 @@ namespace TQVaultAE.GUI
 				string myCulture = null;
 				foreach (CultureInfo ci in CultureInfo.GetCultures(CultureTypes.NeutralCultures))
 				{
-					if (ci.EnglishName.ToUpperInvariant().Equals(settingsCulture.ToUpperInvariant()))
+					if (ci.EnglishName.Equals(settingsCulture, StringComparison.InvariantCultureIgnoreCase))
 					{
 						myCulture = ci.TextInfo.CultureName;
 						break;
@@ -475,8 +507,20 @@ namespace TQVaultAE.GUI
 
 			if (charName.ToUpperInvariant() == "SYS")
 			{
-				// Check for the transfer stash.
-				charName = Resources.GlobalTransferStash;
+				string fileAndExtension = Path.GetFileName(filename);
+				if (fileAndExtension.ToUpperInvariant().Contains("MISC"))
+				{
+					// Check for the relic vault stash.
+					charName = Resources.GlobalRelicVaultStash;
+				}
+				else if (fileAndExtension.ToUpperInvariant().Contains("WIN"))
+				{
+					// Check for the transfer stash.
+					charName = Resources.GlobalTransferStash;
+				}
+				else {
+					charName = null;
+				}
 			}
 			else if (charName.StartsWith("_", StringComparison.Ordinal))
 			{
@@ -823,8 +867,7 @@ namespace TQVaultAE.GUI
 			this.secondaryVaultPanel.Visible = false;
 			this.lastBag = -1;
 
-			int textPanelOffset = 0;
-			textPanelOffset = Convert.ToInt32(18.0F * Database.DB.Scale);
+			int textPanelOffset = Convert.ToInt32(18.0F * Database.DB.Scale);
 			this.itemTextPanel.Size = new Size(this.vaultPanel.Width, Convert.ToInt32(22.0F * Database.DB.Scale));
 			this.itemTextPanel.Location = new Point(this.vaultPanel.Location.X, this.ClientSize.Height - (this.itemTextPanel.Size.Height + textPanelOffset));
 			this.itemText.Width = this.itemTextPanel.Width - Convert.ToInt32(4.0F * Database.DB.Scale);
@@ -850,6 +893,9 @@ namespace TQVaultAE.GUI
 			int formHeight = 910;
 			float initialScale = 1.0F;
 			Settings.Default.Scale = initialScale;
+			
+			// Ninakoru: trick to force close/min/max buttons to reposition...
+			this.ScaleOnResize = false;
 			if (workingArea.Width < formWidth || workingArea.Height < formHeight)
 			{
 
@@ -864,9 +910,13 @@ namespace TQVaultAE.GUI
 			}
 			else
 			{
-				this.ClientSize = new System.Drawing.Size(formWidth,formHeight);
+				this.ClientSize = new System.Drawing.Size(formWidth, formHeight);
 			}
+			this.ScaleOnResize = true;
+
+
 			TQVaultData.Database.DB.Scale = Settings.Default.Scale;
+
 			Settings.Default.Save();
 
 			// Save the height / width ratio for resizing.
@@ -876,17 +926,15 @@ namespace TQVaultAE.GUI
 				Convert.ToInt32((float)this.Width * 0.4F),
 				Convert.ToInt32((float)this.Height * 0.4F));
 
-
 			this.OriginalFormSize = this.Size;
 			this.OriginalFormScale = Settings.Default.Scale;
 
-
 			if (CurrentAutoScaleDimensions.Width != Database.DesignDpi)
 			{
-					// We do not need to scale the main form controls since autoscaling will handle it.
-					// Scale internally to 96 dpi for the drawing functions.
-					Database.DB.Scale = this.CurrentAutoScaleDimensions.Width / Database.DesignDpi;
-					this.OriginalFormScale = Database.DB.Scale;
+				// We do not need to scale the main form controls since autoscaling will handle it.
+				// Scale internally to 96 dpi for the drawing functions.
+				Database.DB.Scale = this.CurrentAutoScaleDimensions.Width / Database.DesignDpi;
+				this.OriginalFormScale = Database.DB.Scale;
 			}
 
 			this.LastFormSize = this.Size;
@@ -936,12 +984,12 @@ namespace TQVaultAE.GUI
 			else
 			{
 				//read map name from ini file, main section
-				if(!String.IsNullOrEmpty(IniProperties.Mod))
+				if (!String.IsNullOrEmpty(IniProperties.Mod))
 				{
 					TQData.MapName = IniProperties.Mod;
 				}
 
-				if(!IniProperties.ShowEditingCopyFeatures)
+				if (!IniProperties.ShowEditingCopyFeatures)
 				{
 					Settings.Default.AllowItemCopy = false;
 					Settings.Default.AllowItemEdit = false;
@@ -1020,6 +1068,7 @@ namespace TQVaultAE.GUI
 				this.loadingComplete = true;
 				this.Enabled = true;
 				this.LoadTransferStash();
+				this.LoadRelicVaultStash();
 
 				// Load last character here if selected
 				if (Settings.Default.LoadLastCharacter)
@@ -1153,7 +1202,7 @@ namespace TQVaultAE.GUI
 		/// </summary>
 		private void CreatePlayerPanel()
 		{
-			this.playerPanel = new PlayerPanel(this.dragInfo, 3, new Size(12, 5), new Size(8, 5), this.tooltip);
+			this.playerPanel = new PlayerPanel(this.dragInfo, 4, new Size(12, 5), new Size(8, 5), this.tooltip);
 
 			this.playerPanel.Location = new Point(
 				this.ClientSize.Width - (this.playerPanel.Width + Convert.ToInt32(22.0F * Database.DB.Scale)),
@@ -1249,6 +1298,64 @@ namespace TQVaultAE.GUI
 				MessageBox.Show(msg, Resources.MainFormStashReadError, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, RightToLeftOptions);
 
 				this.stashPanel.TransferStash = null;
+			}
+		}
+
+
+		/// <summary>
+		/// Loads the relic vault stash
+		/// </summary>
+		private void LoadRelicVaultStash()
+		{
+			string relicVaultStashFile = TQData.RelicVaultStashFile;
+
+			// Get the relic vault stash
+			try
+			{
+				Stash stash;
+				try
+				{
+					stash = this.stashes[relicVaultStashFile];
+				}
+				catch (KeyNotFoundException)
+				{
+					bool stashLoaded = false;
+					stash = new Stash(Resources.GlobalRelicVaultStash, relicVaultStashFile);
+					stash.IsImmortalThrone = true;
+
+					try
+					{
+						// Throw a message if the stash does not exist.
+						bool stashPresent = stash.LoadFile();
+						if (!stashPresent)
+						{
+							MessageBox.Show(Resources.StashNotFoundMsg, Resources.StashNotFound, MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, RightToLeftOptions);
+						}
+
+						stashLoaded = stashPresent;
+					}
+					catch (ArgumentException argumentException)
+					{
+						string msg = string.Format(CultureInfo.CurrentUICulture, "{0}\n{1}\n{2}", Resources.MainFormPlayerReadError, relicVaultStashFile, argumentException.Message);
+						MessageBox.Show(msg, Resources.GlobalError, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, RightToLeftOptions);
+						stashLoaded = false;
+					}
+
+					if (stashLoaded)
+					{
+						stash.Sack.StashType = SackType.RelicVaultStash;
+						this.stashes.Add(relicVaultStashFile, stash);
+					}
+				}
+
+				this.stashPanel.RelicVaultStash = stash;
+			}
+			catch (IOException exception)
+			{
+				string msg = string.Format(CultureInfo.InvariantCulture, Resources.MainFormReadError, relicVaultStashFile, exception.ToString());
+				MessageBox.Show(msg, Resources.MainFormStashReadError, MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, RightToLeftOptions);
+
+				this.stashPanel.RelicVaultStash = null;
 			}
 		}
 
@@ -1714,7 +1821,7 @@ namespace TQVaultAE.GUI
 				this.playerPanel.Player = null;
 				this.characterComboBox.SelectedIndex = 0;
 			}
-			
+
 			string stashFile = TQData.GetPlayerStashFile(selectedText);
 
 			// Get the player's stash
@@ -1763,7 +1870,7 @@ namespace TQVaultAE.GUI
 
 				this.stashPanel.Stash = null;
 			}
-			
+
 		}
 
 		/// <summary>
@@ -2187,6 +2294,14 @@ namespace TQVaultAE.GUI
 						return;
 					}
 
+					// Check the relic vault stash
+					if (this.stashPanel.RelicVaultStash == null && this.stashPanel.CurrentBag == 3)
+					{
+						// We have nowhere to send the item so cancel the move.
+						this.dragInfo.Cancel();
+						return;
+					}
+
 					// See if we have an open space to put the item.
 					Point location = this.stashPanel.SackPanel.FindOpenCells(this.dragInfo.Item.Width, this.dragInfo.Item.Height);
 
@@ -2198,6 +2313,12 @@ namespace TQVaultAE.GUI
 					else
 					{
 						Item dragItem = this.dragInfo.Item;
+
+						if (!this.stashPanel.SackPanel.IsItemValidForPlacement(dragItem))
+						{
+							this.dragInfo.Cancel();
+							return;
+						}
 
 						// Use the same method as if we used to mouse to pickup and place the item.
 						this.dragInfo.MarkPlaced(-1);
@@ -3127,7 +3248,7 @@ namespace TQVaultAE.GUI
 				this.stashPanel.CurrentBag = selectedResult.SackNumber;
 				this.stashPanel.SackPanel.SelectItem(selectedResult.Item.Location);
 			}
-			else if (selectedResult.SackType == SackType.TransferStash)
+			else if ((selectedResult.SackType == SackType.TransferStash) || (selectedResult.SackType == SackType.RelicVaultStash))
 			{
 				// Switch to the Stash bag
 				this.stashPanel.CurrentBag = selectedResult.SackNumber;
@@ -3308,6 +3429,11 @@ namespace TQVaultAE.GUI
 				{
 					sackNumber = 1;
 					sackType = SackType.TransferStash;
+				}
+				else if (stashName == Resources.GlobalRelicVaultStash)
+				{
+					sackNumber = 3;
+					sackType = SackType.RelicVaultStash;
 				}
 
 				foreach (Item item in QuerySack(predicate, sack))

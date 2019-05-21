@@ -10,6 +10,7 @@ namespace TQVaultAE.GUI
 	using System.Collections.Generic;
 	using System.Drawing;
 	using System.Globalization;
+	using System.Linq;
 	using System.Windows.Forms;
 	using TQVaultData;
 
@@ -144,6 +145,40 @@ namespace TQVaultAE.GUI
 		public SettingsDialog()
 		{
 			this.InitializeComponent();
+
+			#region Apply custom font
+
+			this.allowItemEditCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.allowItemCopyCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.skipTitleCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.loadLastCharacterCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.loadLastVaultCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.vaultPathTextBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.vaultPathLabel.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.cancelButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.okayButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.resetButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.vaultPathBrowseButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.enableCustomMapsCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.loadAllFilesCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.suppressWarningsCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.playerReadonlyCheckbox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.languageComboBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.languageLabel.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.detectLanguageCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.titanQuestPathTextBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.titanQuestPathLabel.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.immortalThronePathLabel.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.immortalThronePathTextBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.detectGamePathsCheckBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.titanQuestPathBrowseButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.immortalThronePathBrowseButton.Font = Program.GetFontAlbertusMTLight(12F);
+			this.customMapLabel.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.mapListComboBox.Font = Program.GetFontAlbertusMTLight(11.25F);
+			this.Font = Program.GetFontAlbertusMTLight(11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, (byte)(0));
+
+			#endregion
+
 			this.vaultPathLabel.Text = Resources.SettingsLabel1;
 			this.languageLabel.Text = Resources.SettingsLabel2;
 			this.titanQuestPathLabel.Text = Resources.SettingsLabel3;
@@ -366,6 +401,8 @@ namespace TQVaultAE.GUI
 			this.UpdateDialogSettings();
 		}
 
+
+
 		/// <summary>
 		/// Loads the settings from the config file
 		/// </summary>
@@ -380,13 +417,14 @@ namespace TQVaultAE.GUI
 			this.detectLanguage = Settings.Default.AutoDetectLanguage;
 
 			// Force English since there was some issue with getting the proper language setting.
-			if (Database.DB.GameLanguage == null)
+			var gl = Database.DB.GameLanguage;
+			if (gl == null)
 			{
 				this.titanQuestLanguage = "English";
 			}
 			else
 			{
-				this.titanQuestLanguage = Database.DB.GameLanguage;
+				this.titanQuestLanguage = gl;
 			}
 
 			this.detectGamePath = Settings.Default.AutoDetectGamePath;
@@ -419,35 +457,19 @@ namespace TQVaultAE.GUI
 			}
 
 			// Build language combo box
-			char delim = ',';
 			this.languageComboBox.Items.Clear();
 
 			// Read the languages from the config file
-			string val = Settings.Default.GameLanguages;
-			if (val.Length > 2)
+			ComboBoxItem[] languages = Settings.Default.GameLanguages.Split(',').Select(iso =>
 			{
-				string[] languages = val.Split(delim);
-				if (languages.Length > 0)
-				{
-					List<string> languageName = new List<string>();
+				CultureInfo ci = new CultureInfo(iso.ToUpperInvariant(), true);
+				return new ComboBoxItem() { Value = ci.EnglishName, DisplayName = ci.DisplayName };// to keep EnglishName as baseline value
+			}).OrderBy(cb => cb.DisplayName).ToArray();
 
-					foreach (string langCode in languages)
-					{
-						CultureInfo ci = new CultureInfo(langCode.ToUpperInvariant(), false);
-						languageName.Add(ci.DisplayName.ToString());
-					}
+			// Reading failed so we default to English
+			if (!languages.Any()) languages = new ComboBoxItem[] { new ComboBoxItem() { Value = "English", DisplayName = "English" } };
 
-					string[] listLanguages = new string[languageName.Count];
-					languageName.CopyTo(listLanguages);
-					Array.Sort(listLanguages);
-					this.languageComboBox.Items.AddRange(listLanguages);
-				}
-				else
-				{
-					// Reading failed so we default to English
-					this.languageComboBox.Items.Add("English");
-				}
-			}
+			this.languageComboBox.Items.AddRange(languages);
 
 			this.vaultPathTextBox.Text = this.vaultPath;
 			this.skipTitleCheckBox.Checked = this.skipTitle;
@@ -476,11 +498,7 @@ namespace TQVaultAE.GUI
 
 			this.mapListComboBox.Enabled = this.enableMods;
 
-			ind = this.languageComboBox.FindString(this.titanQuestLanguage);
-			if (ind != -1)
-			{
-				this.languageComboBox.SelectedIndex = ind;
-			}
+			this.languageComboBox.SelectedItem = languages.FirstOrDefault(cb => cb.Value.Equals(this.titanQuestLanguage, StringComparison.InvariantCultureIgnoreCase));
 
 			this.languageComboBox.Enabled = !this.detectLanguage;
 		}
@@ -687,13 +705,14 @@ namespace TQVaultAE.GUI
 		private void LanguageComboBoxSelectedIndexChanged(object sender, EventArgs e)
 		{
 			// There was some problem getting the game language so we ignore changing it.
-			if (Database.DB.GameLanguage == null)
+			var gl = Database.DB.GameLanguage;
+			if (gl == null)
 			{
 				return;
 			}
 
-			this.titanQuestLanguage = this.languageComboBox.SelectedItem.ToString();
-			if (this.titanQuestLanguage.ToUpperInvariant() != Database.DB.GameLanguage.ToUpperInvariant())
+			this.titanQuestLanguage = ((ComboBoxItem)this.languageComboBox.SelectedItem).Value;
+			if (this.titanQuestLanguage.ToUpperInvariant() != gl.ToUpperInvariant())
 			{
 				this.languageChanged = true;
 			}
