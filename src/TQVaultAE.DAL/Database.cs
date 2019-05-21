@@ -1076,6 +1076,12 @@ namespace TQVaultData
 					cultureID = "CZ";
 				}
 
+				// for Chinese
+				if (cultureID != null && cultureID.ToUpperInvariant() == "ZH")
+				{
+					cultureID = "CH";
+				}
+
 				if (TQDebug.DatabaseDebugLevel > 1)
 				{
 					TQDebug.DebugWriteLine(string.Format(CultureInfo.InvariantCulture, "cultureID = {0}", cultureID));
@@ -1110,6 +1116,11 @@ namespace TQVaultData
 			{
 				TQDebug.DebugWriteLine("Using cultureID from OS");
 				TQDebug.DebugWriteLine(string.Format(CultureInfo.InvariantCulture, "cultureID = {0}", cultureID));
+			}
+			// for Chinese
+			if (cultureID != null && cultureID.ToUpperInvariant() == "ZH")
+			{
+				cultureID = "CH";
 			}
 
 			// Added a check to verify that we actually have a cultureID
@@ -1336,26 +1347,26 @@ namespace TQVaultData
 					// Now for the foreign languages there is a bunch of crap in here so the proper version of the adjective can be used with the proper
 					// noun form.  I don' want to code all that so this next code will just take the first version of the adjective and then
 					// throw away all the metadata.
-					if (label.IndexOf('[') != -1)
-					{
-						// find first [xxx]
-						int textStart = label.IndexOf(']') + 1;
+					//if (label.indexof('[') != -1)
+					//{
+					//	// find first [xxx]
+					//	int textstart = label.indexof(']') + 1;
 
-						// find second [xxx]
-						int textEnd = label.IndexOf('[', textStart);
-						if (textEnd == -1)
-						{
-							// If it was the only [...] tag in the string then take the whole string after the tag
-							label = label.Substring(textStart);
-						}
-						else
-						{
-							// else take the string between the first 2 [...] tags
-							label = label.Substring(textStart, textEnd - textStart);
-						}
+					//	// find second [xxx]
+					//	int textend = label.indexof('[', textstart);
+					//	if (textend == -1)
+					//	{
+					//		// if it was the only [...] tag in the string then take the whole string after the tag
+					//		label = label.substring(textstart);
+					//	}
+					//	else
+					//	{
+					//		// else take the string between the first 2 [...] tags
+					//		label = label.substring(textstart, textend - textstart);
+					//	}
 
-						label = label.Trim();
-					}
+					//	label = label.trim();
+					//}
 
 					// If this field is already in the db, then replace it
 					string key = fields[0].Trim().ToUpperInvariant();
